@@ -19,6 +19,30 @@
             justify-content: center;
             align-items: center;
             padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        body::before {
+            content: '🍁';
+            position: absolute;
+            font-size: 200px;
+            opacity: 0.1;
+            top: -50px;
+            right: -50px;
+            transform: rotate(-15deg);
+            pointer-events: none;
+        }
+        
+        body::after {
+            content: '🍁';
+            position: absolute;
+            font-size: 150px;
+            opacity: 0.08;
+            bottom: -30px;
+            left: -30px;
+            transform: rotate(25deg);
+            pointer-events: none;
         }
         
         .container {
@@ -160,11 +184,37 @@
         .loading.show {
             display: block;
         }
+        
+        .temp-toggle {
+            display: flex;
+            justify-content: center;
+            gap: 5px;
+            margin-bottom: 20px;
+        }
+        
+        .temp-toggle button {
+            padding: 8px 20px;
+            font-size: 14px;
+            background: #f8f9fa;
+            color: #666;
+            border: 2px solid #ddd;
+        }
+        
+        .temp-toggle button.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: #667eea;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>🌤️ Weather App</h1>
+        
+        <div class="temp-toggle">
+            <button id="celsiusBtn" class="active" onclick="toggleTemp('C')">°C</button>
+            <button id="fahrenheitBtn" onclick="toggleTemp('F')">°F</button>
+        </div>
         
         <div class="search-box">
             <input type="text" id="cityInput" placeholder="Enter city name..." />
@@ -201,14 +251,30 @@
     </div>
 
     <script>
-        const API_KEY = '195bf94ec7ce459ea5e172827260902'<Place holder; // Get free API key from https://www.weatherapi.com/
+        const API_KEY = '195bf94ec7ce459ea5e172827260902'; // Get free API key from https://www.weatherapi.com/
         const API_URL = 'https://api.weatherapi.com/v1/current.json';
+        
+        let currentUnit = 'C';
+        let weatherData = null;
         
         document.getElementById('cityInput').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
                 getWeather();
             }
         });
+        
+        function toggleTemp(unit) {
+            currentUnit = unit;
+            
+            // Update button states
+            document.getElementById('celsiusBtn').classList.toggle('active', unit === 'C');
+            document.getElementById('fahrenheitBtn').classList.toggle('active', unit === 'F');
+            
+            // Redisplay weather with new unit if data exists
+            if (weatherData) {
+                displayWeather(weatherData);
+            }
+        }
         
         async function getWeather() {
             const city = document.getElementById('cityInput').value.trim();
@@ -228,8 +294,8 @@
                     throw new Error('City not found');
                 }
                 
-                const data = await response.json();
-                displayWeather(data);
+                weatherData = await response.json();
+                displayWeather(weatherData);
             } catch (error) {
                 showError(error.message || 'Failed to fetch weather data');
             } finally {
@@ -238,10 +304,14 @@
         }
         
         function displayWeather(data) {
+            const temp = currentUnit === 'C' ? data.current.temp_c : data.current.temp_f;
+            const feelsLike = currentUnit === 'C' ? data.current.feelslike_c : data.current.feelslike_f;
+            const unit = currentUnit === 'C' ? '°C' : '°F';
+            
             document.getElementById('cityName').textContent = `${data.location.name}, ${data.location.country}`;
-            document.getElementById('temperature').textContent = `${Math.round(data.current.temp_c)}°C`;
+            document.getElementById('temperature').textContent = `${Math.round(temp)}${unit}`;
             document.getElementById('description').textContent = data.current.condition.text;
-            document.getElementById('feelsLike').textContent = `${Math.round(data.current.feelslike_c)}°C`;
+            document.getElementById('feelsLike').textContent = `${Math.round(feelsLike)}${unit}`;
             document.getElementById('humidity').textContent = `${data.current.humidity}%`;
             document.getElementById('windSpeed').textContent = `${data.current.wind_kph} km/h`;
             document.getElementById('pressure').textContent = `${data.current.pressure_mb} mb`;
